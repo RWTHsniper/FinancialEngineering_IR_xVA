@@ -131,7 +131,7 @@ def HW_CapletFloorletPrice(CP,N,K,lambd,eta,P0T,T1,T2):
     elif CP==OptionType.PUT:
         N_new = N * (1.0+(T2-T1)*K)
         K_new = 1.0 + (T2-T1)*K
-        floorlet = N_new*HW_ZCB_CallPutPrice(OptionType.Call,1.0/K_new,lambd,eta,P0T,T1,T2)
+        floorlet = N_new*HW_ZCB_CallPutPrice(OptionType.CALL,1.0/K_new,lambd,eta,P0T,T1,T2)
         value = floorlet
     return value
     
@@ -158,85 +158,110 @@ def HW_ZCB_CallPutPrice(CP,K,lambd,eta,P0T,T1,T2):
         return value - P0T(T2) + K*P0T(T1)
 
 
-def mainCalculation():
-    CP= OptionType.CALL
-    NoOfPaths = 20000
-    NoOfSteps = 1000
-        
-    lambd     = 0.02
+# def mainCalculation():
+CP = OptionType.CALL
+CP = OptionType.PUT
+NoOfPaths = 20000
+NoOfSteps = 1000
+    
+lambd     = 0.02
 
-    eta       = 0.02
-    
-    # We define a ZCB curve (obtained from the market)
-    P0T = lambda T: np.exp(-0.1*T)#np.exp(-0.03*T*T-0.1*T)
-    r0 = HW_r_0(P0T,lambd,eta)
-    
-    # In this experiment we compare ZCB from the Market and Analytical expression
-    N = 25
-    T_end = 50
-    Tgrid= np.linspace(0,T_end,N)
-    
-    Exact = np.zeros([N,1])
-    Proxy= np.zeros ([N,1])
-    for i,Ti in enumerate(Tgrid):
-        Proxy[i] = HW_ZCB(lambd,eta,P0T,0.0,Ti,r0)
-        Exact[i] = P0T(Ti)
-        
-    plt.figure(1)
-    plt.grid()
-    plt.plot(Tgrid,Exact,'-k')
-    plt.plot(Tgrid,Proxy,'--r')
-    plt.legend(["Analytcal ZCB","Monte Carlo ZCB"])
-    plt.title('P(0,T) from Monte Carlo vs. Analytical expression')
+eta       = 0.02
 
-    # In this experiment we compare Monte Carlo results for 
-    T1 = 4.0
-    T2 = 8.0
-    
-    paths= GeneratePathsHWEuler(NoOfPaths,NoOfSteps,T1 ,P0T, lambd, eta)
-    r = paths["R"]
-    timeGrid = paths["time"]
-    dt = timeGrid[1]-timeGrid[0]
-    
-    # Here we compare the price of an option on a ZCB from Monte Carlo and Analytical expression    
-    M_t = np.zeros([NoOfPaths,NoOfSteps])
-    for i in range(0,NoOfPaths):
-        M_t[i,:] = np.exp(np.cumsum(r[i,:-1])*dt)
-        
-    KVec = np.linspace(0.01,1.7,50)
-    Price_MC_V = np.zeros([len(KVec),1])
-    Price_Th_V =np.zeros([len(KVec),1])
-    P_T1_T2 = HW_ZCB(lambd,eta,P0T,T1,T2,r[:,-1])
-    for i,K in enumerate(KVec):
-        if CP==OptionType.CALL:
-            Price_MC_V[i] =np.mean( 1.0/M_t[:,-1] * np.maximum(P_T1_T2-K,0.0)) 
-        elif CP==OptionType.PUT:
-            Price_MC_V[i] =np.mean( 1.0/M_t[:,-1] * np.maximum(K-P_T1_T2,0.0)) 
-        Price_Th_V[i] =HW_ZCB_CallPutPrice(CP,K,lambd,eta,P0T,T1,T2)#HW_ZCB_CallPrice(K,lambd,eta,P0T,T1,T2)
-        
-    plt.figure(2)
-    plt.grid()
-    plt.plot(KVec,Price_MC_V)
-    plt.plot(KVec,Price_Th_V,'--r')
-    plt.legend(['Monte Carlo','Theoretical'])
-    plt.title('Option on ZCB')
+# We define a ZCB curve (obtained from the market)
+P0T = lambda T: np.exp(-0.1*T)#np.exp(-0.03*T*T-0.1*T)
+r0 = HW_r_0(P0T,lambd,eta)
 
-    # Effect of the HW model parameters on Implied Volatilities
-    # define a forward rate between T1 and T2
-    frwd = 1.0/(T2-T1) *(P0T(T1)/P0T(T2)-1.0)
-    K = np.linspace(frwd/2.0,3.0*frwd,25)
-    Notional = 1.0
+# In this experiment we compare ZCB from the Market and Analytical expression
+N = 25
+T_end = 50
+Tgrid= np.linspace(0,T_end,N)
+
+Exact = np.zeros([N,1])
+Proxy= np.zeros ([N,1])
+for i,Ti in enumerate(Tgrid):
+    Proxy[i] = HW_ZCB(lambd,eta,P0T,0.0,Ti,r0)
+    Exact[i] = P0T(Ti)
     
-    capletPrice = np.zeros(len(K))
-    for idx in range(0,len(K)):
-           capletPrice[idx] = HW_CapletFloorletPrice(CP,Notional,K[idx],lambd,eta,P0T,T1,T2)
-           
-    plt.figure(3)
-    plt.title('Caplet Price')
-    plt.plot(K,capletPrice)
-    plt.xlabel('strike')
-    plt.ylabel('Caplet Price')
-    plt.grid()
+plt.figure(1)
+plt.grid()
+plt.plot(Tgrid,Exact,'-k')
+plt.plot(Tgrid,Proxy,'--r')
+plt.legend(["Analytcal ZCB","Monte Carlo ZCB"])
+plt.title('P(0,T) from Monte Carlo vs. Analytical expression')
+
+# In this experiment we compare Monte Carlo results for 
+T1 = 4.0
+T2 = 8.0
+
+paths= GeneratePathsHWEuler(NoOfPaths,NoOfSteps,T1 ,P0T, lambd, eta)
+r = paths["R"]
+timeGrid = paths["time"]
+dt = timeGrid[1]-timeGrid[0]
+
+# Here we compare the price of an option on a ZCB from Monte Carlo and Analytical expression    
+M_t = np.zeros([NoOfPaths,NoOfSteps])
+for i in range(0,NoOfPaths):
+    M_t[i,:] = np.exp(np.cumsum(r[i,:-1])*dt)
     
+KVec = np.linspace(0.01,1.7,50)
+Price_MC_V = np.zeros([len(KVec),1])
+Price_Th_V =np.zeros([len(KVec),1])
+P_T1_T2 = HW_ZCB(lambd,eta,P0T,T1,T2,r[:,-1])
+for i,K in enumerate(KVec):
+    if CP==OptionType.CALL:
+        Price_MC_V[i] =np.mean( 1.0/M_t[:,-1] * np.maximum(P_T1_T2-K,0.0)) 
+    elif CP==OptionType.PUT:
+        Price_MC_V[i] =np.mean( 1.0/M_t[:,-1] * np.maximum(K-P_T1_T2,0.0)) 
+    Price_Th_V[i] =HW_ZCB_CallPutPrice(CP,K,lambd,eta,P0T,T1,T2)#HW_ZCB_CallPrice(K,lambd,eta,P0T,T1,T2)
     
-mainCalculation()
+plt.figure(2)
+plt.grid()
+plt.plot(KVec,Price_MC_V)
+plt.plot(KVec,Price_Th_V,'--r')
+plt.legend(['Monte Carlo','Theoretical'])
+plt.title('Option on ZCB')
+
+# Effect of the HW model parameters on Implied Volatilities
+# define a forward rate between T1 and T2
+frwd = 1.0/(T2-T1) *(P0T(T1)/P0T(T2)-1.0)
+K = np.linspace(frwd/2.0,3.0*frwd,25)
+Notional = 1.0
+
+T2_T1 = T2 - T1
+capletPrice_MC = np.zeros(len(K))
+capletPrice = np.zeros(len(K))
+for idx in range(0,len(K)):
+#    payoff = np.maximum((1 + T2_T1 * K[idx])*P_T1_T2-1, 0.0)
+    payoff = np.maximum(1-(1 + T2_T1 * K[idx])*P_T1_T2, 0.0)
+    capletPrice_MC[idx] = Notional * np.mean(payoff / M_t[:,-1])
+    capletPrice[idx] = HW_CapletFloorletPrice(OptionType.CALL,Notional,K[idx],lambd,eta,P0T,T1,T2)
+       
+plt.figure(3)
+plt.title('Caplet Price')
+plt.plot(K,capletPrice_MC)
+plt.plot(K,capletPrice,'--r')
+plt.xlabel('strike')
+plt.ylabel('Caplet Price')
+plt.legend(['Monte Carlo','Theoretical'])
+plt.grid()
+    
+
+floorletPrice_MC = np.zeros(len(K))
+floorletPrice = np.zeros(len(K))
+for idx in range(0,len(K)):
+    payoff = np.maximum((1 + T2_T1 * K[idx])*P_T1_T2-1, 0.0)
+#    payoff = np.maximum(1-(1 + T2_T1 * K[idx])*P_T1_T2, 0.0)
+    floorletPrice_MC[idx] = Notional * np.mean(payoff / M_t[:,-1])
+    floorletPrice[idx] = HW_CapletFloorletPrice(OptionType.PUT,Notional,K[idx],lambd,eta,P0T,T1,T2)
+       
+plt.figure(4)
+plt.title('Floorlet Price')
+plt.plot(K,floorletPrice_MC)
+plt.plot(K,floorletPrice,'--r')
+plt.xlabel('strike')
+plt.ylabel('Floorlet Price')
+plt.legend(['Monte Carlo','Theoretical'])
+plt.grid()
+    
+# mainCalculation()
