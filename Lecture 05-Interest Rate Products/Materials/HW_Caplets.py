@@ -61,7 +61,7 @@ def HW_theta(lambd,eta,P0T):
 def HW_A(lambd,eta,P0T,T1,T2):
     tau = T2-T1
     zGrid = np.linspace(0.0,tau,250)
-    B_r = lambda tau: 1.0/lambd * (np.exp(-lambd *tau)-1.0)
+    B_r = lambda tau: 1.0/lambd * (np.exp(-lambd *tau)-1.0) # the same as HW_B
     theta = HW_theta(lambd,eta,P0T)    
     temp1 = lambd * integrate.trapz(theta(T2-zGrid)*B_r(zGrid),zGrid)
     
@@ -127,9 +127,12 @@ def HW_CapletFloorletPrice(CP,N,K,lambd,eta,P0T,T1,T2):
         N_new = N * (1.0+(T2-T1)*K)
         K_new = 1.0 + (T2-T1)*K
         caplet = N_new*HW_ZCB_CallPutPrice(OptionType.PUT,1.0/K_new,lambd,eta,P0T,T1,T2)
-        value= caplet
+        value = caplet
     elif CP==OptionType.PUT:
-        value = 0.0 # In the homework assignmnet you need to fill this part in
+        N_new = N * (1.0+(T2-T1)*K)
+        K_new = 1.0 + (T2-T1)*K
+        floorlet = N_new*HW_ZCB_CallPutPrice(OptionType.Call,1.0/K_new,lambd,eta,P0T,T1,T2)
+        value = floorlet
     return value
     
 def HW_ZCB_CallPutPrice(CP,K,lambd,eta,P0T,T1,T2):
